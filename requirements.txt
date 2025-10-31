@@ -16,6 +16,13 @@ ta-lib==0.4.28             # Technical indicators (optional)
 sqlalchemy==2.0.23
 sqlite3worker==1.1.7
 
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+python-socketio==5.10.0
+eventlet==0.33.3
+
 # Utilities
 python-dotenv==1.0.0       # Environment variables
 requests==2.31.0           # HTTP requests for REST API

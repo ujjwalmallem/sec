@@ -4,6 +4,23 @@
 
 Monitor unusual options activity, track put/call ratios, open interest changes, volume anomalies, and IV rank to identify where smart money is positioned.
 
+## 🌐 Two Ways to Use
+
+### 1. **Web UI (Recommended)** 🖥️
+Beautiful, interactive dashboard with real-time updates, charts, and easy controls.
+```bash
+./start_web.sh
+# Open http://localhost:5000 in your browser
+```
+
+### 2. **Command Line** ⌨️
+Traditional CLI for scripting and automation.
+```bash
+python scanner.py --mode continuous
+```
+
+**See [WEB_UI_README.md](WEB_UI_README.md) for complete Web UI guide.**
+
 ---
 
 ## 🎯 Features
@@ -151,7 +168,28 @@ mkdir -p data logs
 
 ## 💻 Usage
 
-### Quick Start
+### Option 1: Web UI (Recommended)
+
+```bash
+# Start the web dashboard
+./start_web.sh
+
+# Open browser to http://localhost:5000
+# Click "Start" button to begin scanning
+```
+
+**Features:**
+- 📊 Real-time signal dashboard
+- 📈 Interactive charts (P/C ratio, volume, distribution)
+- 🎯 Watchlist management (add/remove symbols on the fly)
+- ⚙️ Live configuration editor
+- 📜 Scan history
+- 🔔 Visual alerts and notifications
+- 📱 Responsive design
+
+See [WEB_UI_README.md](WEB_UI_README.md) for complete guide.
+
+### Option 2: Command Line
 
 ```bash
 # Activate virtual environment
@@ -281,18 +319,31 @@ Volatility Gate: 12 contracts passed
 
 ```
 sec/
-├── scanner.py              # Main orchestrator
+├── scanner.py              # Main CLI orchestrator
+├── web_app.py              # Flask web application
 ├── ibkr_connection.py      # IBKR API connection handler
 ├── options_data.py         # Options data fetcher
 ├── whale_filters.py        # Whale detection filters
 ├── signal_detector.py      # Signal detection & alerts
 ├── data_storage.py         # Historical data storage
-├── config.yaml             # Configuration file
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── data/                  # SQLite database (auto-created)
+├── utils.py               # Helper functions
+├── example_usage.py       # Usage examples
+├── config.yaml            # Configuration file
+├── requirements.txt       # Python dependencies
+├── setup.sh              # Setup script
+├── start_web.sh          # Web UI launcher
+├── README.md             # Main documentation
+├── WEB_UI_README.md      # Web UI guide
+├── templates/            # HTML templates
+│   └── dashboard.html
+├── static/               # CSS, JS, assets
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
+├── data/                 # SQLite database (auto-created)
 │   └── whale_scanner.db
-└── logs/                  # Log files (auto-created)
+└── logs/                 # Log files (auto-created)
     └── whale_scanner.log
 ```
 
