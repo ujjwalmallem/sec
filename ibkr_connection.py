@@ -173,12 +173,14 @@ class IBKRConnection:
             Option contract
         """
         try:
+            # Use CBOE exchange instead of SMART to avoid ARCA subscription errors
+            # CBOE supports delayed data without additional subscriptions
             option = Option(
                 symbol=symbol,
                 lastTradeDateOrContractMonth=expiration,
                 strike=strike,
                 right=right,
-                exchange="SMART"
+                exchange="CBOE"  # Changed from SMART to CBOE
             )
 
             qualified = self.ib.qualifyContracts(option)
