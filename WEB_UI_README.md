@@ -15,7 +15,7 @@
 ./start_web.sh
 ```
 
-The dashboard will be available at: **http://localhost:5000**
+The dashboard will be available at: **http://localhost:8080**
 
 ### 2. Before Scanning
 
@@ -26,7 +26,7 @@ The dashboard will be available at: **http://localhost:5000**
 
 ### 3. Use the Dashboard
 
-1. Open http://localhost:5000 in your browser
+1. Open http://localhost:8080 in your browser
 2. Add symbols to your watchlist
 3. Click **"Start"** button to begin scanning
 4. Monitor real-time signals as they appear
@@ -345,7 +345,7 @@ For custom integrations:
 
 **Example API Call:**
 ```bash
-curl http://localhost:5000/api/status
+curl http://localhost:8080/api/status
 ```
 
 ---
@@ -440,7 +440,7 @@ For issues or questions:
 
 ### Default URL
 ```
-http://localhost:5000
+http://localhost:8080
 ```
 
 ### Key Features

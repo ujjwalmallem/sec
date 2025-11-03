@@ -434,7 +434,7 @@ def main():
     print("\n" + "="*80)
     print("🐋 WHALE OPTIONS SCANNER - WEB UI")
     print("="*80)
-    print("\n📊 Dashboard: http://localhost:5000")
+    print("\n📊 Dashboard: http://localhost:8080")
     print("\n⚠️  Make sure IBKR TWS/Gateway is running before starting scanner!")
     print("\n" + "="*80 + "\n")
 
@@ -442,7 +442,7 @@ def main():
     load_config()
 
     # Run Flask app
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    socketio.run(app, host='0.0.0.0', port=8080, debug=False)
 
 
 if __name__ == '__main__':

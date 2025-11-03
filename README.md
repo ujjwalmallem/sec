@@ -10,7 +10,7 @@ Monitor unusual options activity, track put/call ratios, open interest changes, 
 Beautiful, interactive dashboard with real-time updates, charts, and easy controls.
 ```bash
 ./start_web.sh
-# Open http://localhost:5000 in your browser
+# Open http://localhost:8080 in your browser
 ```
 
 ### 2. **Command Line** ⌨️
@@ -174,7 +174,7 @@ mkdir -p data logs
 # Start the web dashboard
 ./start_web.sh
 
-# Open browser to http://localhost:5000
+# Open browser to http://localhost:8080
 # Click "Start" button to begin scanning
 ```
 
