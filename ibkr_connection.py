@@ -57,6 +57,11 @@ class IBKRConnection:
                     )
                 )
 
+                # Switch to delayed market data (free) if not subscribed to real-time
+                # Market data type: 1=delayed, 2=frozen, 3=delayed frozen, 4=real-time
+                self.ib.reqMarketDataType(3)  # Use delayed frozen data (free)
+                logger.info("✓ Using delayed/snapshot market data (free)")
+
                 self.connected = True
                 logger.info("✓ Connected to IBKR successfully")
                 return True
