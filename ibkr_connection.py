@@ -10,6 +10,13 @@ from datetime import datetime
 from ib_insync import IB, Stock, Option, Contract, util
 import yaml
 
+# Enable nested event loops for threading compatibility
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass  # nest_asyncio is optional but recommended
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,13 +45,18 @@ class IBKRConnection:
         try:
             if not self.ib.isConnected():
                 logger.info(f"Connecting to IBKR at {self.host}:{self.port}")
-                self.ib.connect(
-                    host=self.host,
-                    port=self.port,
-                    clientId=self.client_id,
-                    readonly=self.readonly,
-                    timeout=20
+
+                # ib_insync requires an event loop - use util.run() for thread safety
+                util.run(
+                    self.ib.connectAsync(
+                        host=self.host,
+                        port=self.port,
+                        clientId=self.client_id,
+                        readonly=self.readonly,
+                        timeout=20
+                    )
                 )
+
                 self.connected = True
                 logger.info("✓ Connected to IBKR successfully")
                 return True
