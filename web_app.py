@@ -28,6 +28,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Filter out non-critical market data errors that are automatically handled
+class MarketDataErrorFilter(logging.Filter):
+    """Filter out Error 10091 (subscription errors that fall back to delayed data)"""
+    def filter(self, record):
+        # Suppress Error 10091 - it's not a real error, delayed data is provided
+        if hasattr(record, 'getMessage'):
+            msg = record.getMessage()
+            if 'Error 10091' in msg or 'Part of requested market data requires additional subscription' in msg:
+                return False  # Don't log this error
+        return True  # Log everything else
+
+# Apply filter to ib_insync wrapper logger
+ib_wrapper_logger = logging.getLogger('ib_insync.wrapper')
+ib_wrapper_logger.addFilter(MarketDataErrorFilter())
+
 # Create Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'whale-scanner-secret-key-change-me'

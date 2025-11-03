@@ -47,6 +47,20 @@ def setup_logging(config: dict):
         file_handler.setFormatter(logging.Formatter(config['logging']['format']))
         logger.addHandler(file_handler)
 
+    # Filter out non-critical market data errors
+    class MarketDataErrorFilter(logging.Filter):
+        """Filter out Error 10091 (subscription errors that fall back to delayed data)"""
+        def filter(self, record):
+            if hasattr(record, 'getMessage'):
+                msg = record.getMessage()
+                if 'Error 10091' in msg or 'Part of requested market data requires additional subscription' in msg:
+                    return False  # Suppress this non-critical error
+            return True
+
+    # Apply filter to ib_insync wrapper logger
+    ib_wrapper_logger = logging.getLogger('ib_insync.wrapper')
+    ib_wrapper_logger.addFilter(MarketDataErrorFilter())
+
 
 class WhaleScanner:
     """Main whale options scanner"""
