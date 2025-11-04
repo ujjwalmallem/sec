@@ -84,11 +84,44 @@ def setup_logging(config: dict):
 class WhaleScanner:
     """Main whale options scanner"""
 
-    def __init__(self, config_path: str = "config.yaml"):
-        """Initialize whale scanner"""
-        # Load configuration
+    def __init__(self, config_path: str = "config.yaml", use_db_config: bool = True):
+        """
+        Initialize whale scanner
+
+        Args:
+            config_path: Path to config.yaml file
+            use_db_config: Load configuration from database if available (default: True)
+        """
+        # Load base configuration from file
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
+
+        # Try to load configuration from database if enabled
+        if use_db_config and POSTGRES_AVAILABLE:
+            postgres_enabled = self.config.get('postgres', {}).get('enabled', False)
+            if postgres_enabled:
+                try:
+                    temp_storage = PostgresStorage(self.config)
+                    db_config = temp_storage.get_configuration()  # Get active config
+                    temp_storage.close()
+
+                    if db_config:
+                        # Merge database config with file config
+                        # Database config takes precedence for scanner settings
+                        self.config.update(db_config['config_data'])
+                        self.config_source = f"database:{db_config['profile_name']}"
+                        print(f"✓ Loaded configuration from database: {db_config['profile_name']}")
+                    else:
+                        self.config_source = "file:config.yaml"
+                        print("⚠ No active database configuration found, using config.yaml")
+                except Exception as e:
+                    self.config_source = "file:config.yaml"
+                    print(f"⚠ Could not load database config: {e}")
+                    print("  Using config.yaml instead")
+            else:
+                self.config_source = "file:config.yaml"
+        else:
+            self.config_source = "file:config.yaml"
 
         # Setup logging
         setup_logging(self.config)
@@ -96,6 +129,7 @@ class WhaleScanner:
 
         # Initialize components
         self.logger.info("Initializing Whale Scanner...")
+        self.logger.info(f"Configuration source: {self.config_source}")
 
         # Determine data provider
         self.provider = self.config.get('data_source', {}).get('provider', 'ibkr').lower()

@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS historical_metrics CASCADE;
 DROP TABLE IF EXISTS whale_signals CASCADE;
 DROP TABLE IF EXISTS watchlist_symbols CASCADE;
 DROP TABLE IF EXISTS scan_runs CASCADE;
+DROP TABLE IF EXISTS configurations CASCADE;
 
 -- Watchlist Symbols
 CREATE TABLE watchlist_symbols (
@@ -23,6 +24,23 @@ CREATE TABLE watchlist_symbols (
 
 CREATE INDEX idx_watchlist_active ON watchlist_symbols(is_active);
 CREATE INDEX idx_watchlist_symbol ON watchlist_symbols(symbol);
+
+-- Configurations - Store scanner configuration profiles
+CREATE TABLE configurations (
+    id SERIAL PRIMARY KEY,
+    profile_name VARCHAR(50) NOT NULL UNIQUE,
+    config_data JSONB NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    CONSTRAINT unique_profile_name UNIQUE(profile_name)
+);
+
+CREATE INDEX idx_config_active ON configurations(is_active);
+CREATE INDEX idx_config_profile ON configurations(profile_name);
+CREATE INDEX idx_config_data ON configurations USING gin(config_data);
 
 -- Scan Runs - Track each scan execution
 CREATE TABLE scan_runs (
@@ -232,8 +250,69 @@ INSERT INTO watchlist_symbols (symbol, name, sector, is_active) VALUES
     ('AMZN', 'Amazon.com Inc.', 'Technology', true)
 ON CONFLICT (symbol) DO NOTHING;
 
+-- Insert default configuration profile
+INSERT INTO configurations (profile_name, config_data, description, is_active) VALUES
+    ('default', '{
+        "scanning": {
+            "interval_seconds": 60,
+            "expirations_to_scan": [0, 1, 2, 7, 14, 30, 60],
+            "strikes_range": 20
+        },
+        "whale_filters": {
+            "liquidity_gate": {
+                "min_volume": 500000,
+                "min_oi": 100000,
+                "min_oi_per_strike": 5000
+            },
+            "anomaly_gate": {
+                "pc_deviation_threshold": 1.5,
+                "pc_lookback_days": 20,
+                "pc_bullish_threshold": 0.7,
+                "pc_bearish_threshold": 1.3,
+                "pc_extreme_low": 0.5,
+                "pc_extreme_high": 1.5,
+                "pc_whale_threshold": 0.3
+            },
+            "conviction_gate": {
+                "volume_vs_avg_multiplier": 2.0,
+                "volume_vs_10d_avg_multiplier": 3.0,
+                "oi_delta_threshold": 25000,
+                "oi_growth_required": true
+            },
+            "volatility_gate": {
+                "ivr_expensive": 80,
+                "ivr_cheap": 20,
+                "ivr_extreme_high": 90,
+                "ivr_extreme_low": 10,
+                "ivr_lookback_days": 252
+            }
+        },
+        "whale_combos": {
+            "strong_bull": {
+                "pc_ratio_max": 0.7,
+                "call_volume_min_multiplier": 2.0,
+                "call_oi_increasing": true,
+                "ivr_max": 30
+            },
+            "institutional_crash_protection": {
+                "pc_ratio_min": 1.3,
+                "put_volume_spike_multiplier": 3.0,
+                "put_oi_increasing": true,
+                "ivr_min": 90
+            },
+            "retail_fomo": {
+                "pc_ratio_max": 0.3,
+                "volume_multiplier": 5.0,
+                "oi_change_max": 1000,
+                "fade_signal": true
+            }
+        }
+    }'::jsonb, 'Default whale detection configuration', true)
+ON CONFLICT (profile_name) DO NOTHING;
+
 -- Comments for documentation
 COMMENT ON TABLE watchlist_symbols IS 'Stores symbols to monitor for whale activity';
+COMMENT ON TABLE configurations IS 'Stores configuration profiles for scanner';
 COMMENT ON TABLE historical_metrics IS 'Aggregated daily/hourly metrics for each symbol';
 COMMENT ON TABLE option_contracts IS 'Individual option contract snapshots';
 COMMENT ON TABLE whale_signals IS 'Detected whale trading signals';

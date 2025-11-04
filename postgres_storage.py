@@ -4,6 +4,7 @@ Stores watchlists and historical options data from Tradier API
 """
 
 import logging
+import json
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import pandas as pd
@@ -468,6 +469,213 @@ class PostgresStorage:
         except Exception as e:
             logger.error(f"Error getting watchlist with metrics: {e}")
             return pd.DataFrame()
+
+    # ========== Configuration Management ==========
+
+    def save_configuration(self, profile_name: str, config_data: dict, description: str = None,
+                          set_active: bool = False, created_by: str = None) -> bool:
+        """
+        Save configuration profile to database
+
+        Args:
+            profile_name: Unique profile name
+            config_data: Configuration dictionary
+            description: Optional description
+            set_active: Set as active configuration
+            created_by: User who created the config
+
+        Returns:
+            True if successful
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # If setting as active, deactivate all others first
+                    if set_active:
+                        cur.execute("UPDATE configurations SET is_active = false")
+
+                    # Insert or update configuration
+                    cur.execute("""
+                        INSERT INTO configurations (profile_name, config_data, description, is_active, created_by, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (profile_name) DO UPDATE SET
+                            config_data = EXCLUDED.config_data,
+                            description = EXCLUDED.description,
+                            is_active = EXCLUDED.is_active,
+                            updated_at = CURRENT_TIMESTAMP
+                    """, (profile_name, json.dumps(config_data), description, set_active, created_by))
+
+                    logger.info(f"Saved configuration profile: {profile_name}")
+                    return True
+
+        except Exception as e:
+            logger.error(f"Error saving configuration: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def get_configuration(self, profile_name: str = None) -> Optional[dict]:
+        """
+        Get configuration profile by name, or active profile if name not provided
+
+        Args:
+            profile_name: Optional profile name (gets active if None)
+
+        Returns:
+            Configuration dictionary or None
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    if profile_name:
+                        cur.execute("""
+                            SELECT profile_name, config_data, description, is_active,
+                                   created_at, updated_at, created_by
+                            FROM configurations
+                            WHERE profile_name = %s
+                        """, (profile_name,))
+                    else:
+                        # Get active configuration
+                        cur.execute("""
+                            SELECT profile_name, config_data, description, is_active,
+                                   created_at, updated_at, created_by
+                            FROM configurations
+                            WHERE is_active = true
+                            LIMIT 1
+                        """)
+
+                    row = cur.fetchone()
+                    if row:
+                        config = dict(row)
+                        # Parse JSONB to Python dict
+                        config['config_data'] = row['config_data']
+                        logger.info(f"Loaded configuration profile: {config['profile_name']}")
+                        return config
+                    else:
+                        logger.warning(f"Configuration profile not found: {profile_name or 'active'}")
+                        return None
+
+        except Exception as e:
+            logger.error(f"Error getting configuration: {e}")
+            return None
+
+    def list_configurations(self) -> List[Dict]:
+        """
+        List all configuration profiles
+
+        Returns:
+            List of configuration profile metadata
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT profile_name, description, is_active,
+                               created_at, updated_at, created_by
+                        FROM configurations
+                        ORDER BY is_active DESC, profile_name
+                    """)
+
+                    configs = [dict(row) for row in cur.fetchall()]
+                    return configs
+
+        except Exception as e:
+            logger.error(f"Error listing configurations: {e}")
+            return []
+
+    def set_active_configuration(self, profile_name: str) -> bool:
+        """
+        Set a configuration profile as active
+
+        Args:
+            profile_name: Profile name to activate
+
+        Returns:
+            True if successful
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Deactivate all configurations
+                    cur.execute("UPDATE configurations SET is_active = false")
+
+                    # Activate specified configuration
+                    cur.execute("""
+                        UPDATE configurations
+                        SET is_active = true, updated_at = CURRENT_TIMESTAMP
+                        WHERE profile_name = %s
+                    """, (profile_name,))
+
+                    if cur.rowcount > 0:
+                        logger.info(f"Activated configuration profile: {profile_name}")
+                        return True
+                    else:
+                        logger.warning(f"Configuration profile not found: {profile_name}")
+                        return False
+
+        except Exception as e:
+            logger.error(f"Error setting active configuration: {e}")
+            return False
+
+    def delete_configuration(self, profile_name: str) -> bool:
+        """
+        Delete a configuration profile
+
+        Args:
+            profile_name: Profile name to delete
+
+        Returns:
+            True if successful
+        """
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        DELETE FROM configurations WHERE profile_name = %s
+                    """, (profile_name,))
+
+                    if cur.rowcount > 0:
+                        logger.info(f"Deleted configuration profile: {profile_name}")
+                        return True
+                    else:
+                        logger.warning(f"Configuration profile not found: {profile_name}")
+                        return False
+
+        except Exception as e:
+            logger.error(f"Error deleting configuration: {e}")
+            return False
+
+    def clone_configuration(self, source_profile: str, new_profile: str, description: str = None) -> bool:
+        """
+        Clone an existing configuration profile
+
+        Args:
+            source_profile: Profile name to clone from
+            new_profile: New profile name
+            description: Optional description for new profile
+
+        Returns:
+            True if successful
+        """
+        try:
+            # Get source configuration
+            source_config = self.get_configuration(source_profile)
+            if not source_config:
+                logger.error(f"Source profile not found: {source_profile}")
+                return False
+
+            # Save as new profile
+            desc = description or f"Cloned from {source_profile}"
+            return self.save_configuration(
+                new_profile,
+                source_config['config_data'],
+                desc,
+                set_active=False
+            )
+
+        except Exception as e:
+            logger.error(f"Error cloning configuration: {e}")
+            return False
 
 
 def test_postgres_storage():
