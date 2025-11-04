@@ -15,6 +15,7 @@ ta-lib==0.4.28             # Technical indicators (optional)
 # Database (for historical data storage)
 sqlalchemy==2.0.23
 sqlite3worker==1.1.7
+psycopg2-binary==2.9.9      # PostgreSQL adapter (for historical data & watchlists)
 
 # Web Framework
 Flask==3.0.0

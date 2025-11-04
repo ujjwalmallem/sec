@@ -23,6 +23,16 @@ tradier:
   sandbox: true                                  # true = sandbox, false = production
   account_id: "VA31706838"                       # Your Tradier account ID
 
+# PostgreSQL Database Settings
+postgres:
+  enabled: true                    # Enable PostgreSQL storage
+  host: "localhost"
+  port: 5432
+  database: "whale_scanner"
+  user: "postgres"
+  password: ""                     # Set your PostgreSQL password
+  # For production, use environment variable: ${POSTGRES_PASSWORD}
+
 # Watchlist - Symbols to monitor
 watchlist:
   symbols:

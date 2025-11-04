@@ -15,6 +15,13 @@ from whale_filters import WhaleFilters
 from signal_detector import SignalDetector
 from data_storage import DataStorage
 
+# Import PostgreSQL storage if available
+try:
+    from postgres_storage import PostgresStorage
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+
 # Import data fetchers based on provider
 try:
     from ibkr_connection import get_ibkr_connection
@@ -124,10 +131,28 @@ class WhaleScanner:
 
         self.whale_filters = WhaleFilters(self.config)
         self.signal_detector = SignalDetector(self.config)
-        self.data_storage = DataStorage(self.config)
 
-        # Get watchlist
-        self.watchlist = self.config['watchlist']['symbols']
+        # Initialize storage (PostgreSQL or SQLite)
+        postgres_enabled = self.config.get('postgres', {}).get('enabled', False)
+        if postgres_enabled and POSTGRES_AVAILABLE:
+            self.data_storage = PostgresStorage(self.config)
+            self.postgres_storage = self.data_storage
+            self.logger.info("✓ Using PostgreSQL for data storage")
+
+            # Load watchlist from PostgreSQL if available
+            db_watchlist = self.data_storage.get_watchlist()
+            if db_watchlist:
+                self.watchlist = db_watchlist
+                self.logger.info(f"✓ Loaded watchlist from PostgreSQL ({len(db_watchlist)} symbols)")
+            else:
+                self.watchlist = self.config['watchlist']['symbols']
+        else:
+            self.data_storage = DataStorage(self.config)
+            self.postgres_storage = None
+            self.watchlist = self.config['watchlist']['symbols']
+            self.logger.info("✓ Using SQLite for data storage")
+
+        # Get watchlist from config if not from database
         self.expirations = self.config['scanning']['expirations_to_scan']
         self.scan_interval = self.config['scanning']['interval_seconds']
 
@@ -174,6 +199,10 @@ class WhaleScanner:
             # Store current data
             self.data_storage.store_metrics(symbol, current_metrics)
 
+            # Store option contracts in PostgreSQL if enabled
+            if self.postgres_storage:
+                self.postgres_storage.store_option_contracts(options_df)
+
             # Apply whale filters
             filtered_df = self.whale_filters.apply_all_filters(options_df, historical_data)
 
@@ -191,6 +220,11 @@ class WhaleScanner:
             # Send alerts if signals found
             if signals:
                 self.signal_detector.send_alerts(signals)
+
+                # Store signals in PostgreSQL if enabled
+                if self.postgres_storage:
+                    for signal in signals:
+                        self.postgres_storage.store_whale_signal(signal)
 
             return {
                 'symbol': symbol,
