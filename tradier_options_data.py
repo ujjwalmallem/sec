@@ -88,20 +88,22 @@ class TradierOptionsDataFetcher:
                 # Process calls
                 if not calls.empty:
                     calls_filtered = self._filter_strikes(calls, current_price, strikes_range)
-                    calls_filtered['right'] = 'C'
-                    calls_filtered['symbol'] = symbol
-                    calls_filtered['expiration'] = expiration.replace('-', '')  # Convert to YYYYMMDD
-                    calls_filtered['underlying_price'] = current_price
-                    all_options.append(calls_filtered)
+                    if not calls_filtered.empty:  # Only add if has data
+                        calls_filtered['right'] = 'C'
+                        calls_filtered['symbol'] = symbol
+                        calls_filtered['expiration'] = expiration.replace('-', '')  # Convert to YYYYMMDD
+                        calls_filtered['underlying_price'] = current_price
+                        all_options.append(calls_filtered)
 
                 # Process puts
                 if not puts.empty:
                     puts_filtered = self._filter_strikes(puts, current_price, strikes_range)
-                    puts_filtered['right'] = 'P'
-                    puts_filtered['symbol'] = symbol
-                    puts_filtered['expiration'] = expiration.replace('-', '')  # Convert to YYYYMMDD
-                    puts_filtered['underlying_price'] = current_price
-                    all_options.append(puts_filtered)
+                    if not puts_filtered.empty:  # Only add if has data
+                        puts_filtered['right'] = 'P'
+                        puts_filtered['symbol'] = symbol
+                        puts_filtered['expiration'] = expiration.replace('-', '')  # Convert to YYYYMMDD
+                        puts_filtered['underlying_price'] = current_price
+                        all_options.append(puts_filtered)
 
             # Combine all options
             if all_options:
