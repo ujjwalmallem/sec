@@ -15,11 +15,23 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import yaml
 
-from ibkr_connection import get_ibkr_connection
-from options_data import OptionsDataFetcher
 from whale_filters import WhaleFilters
 from signal_detector import SignalDetector
 from data_storage import DataStorage
+
+# Import data fetchers based on provider
+try:
+    from ibkr_connection import get_ibkr_connection
+    from options_data import OptionsDataFetcher as IBKROptionsDataFetcher
+    IBKR_AVAILABLE = True
+except ImportError:
+    IBKR_AVAILABLE = False
+
+try:
+    from tradier_options_data import TradierOptionsDataFetcher
+    TRADIER_AVAILABLE = True
+except ImportError:
+    TRADIER_AVAILABLE = False
 
 # Setup logging
 logging.basicConfig(
@@ -81,14 +93,45 @@ def load_config():
 def init_scanner_components(config):
     """Initialize scanner components"""
     try:
-        ibkr = get_ibkr_connection()
-        data_fetcher = OptionsDataFetcher(config)
+        # Determine data provider
+        provider = config.get('data_source', {}).get('provider', 'ibkr').lower()
+        logger.info(f"Initializing with data provider: {provider.upper()}")
+
+        # Initialize data fetcher based on provider
+        if provider == 'tradier':
+            if not TRADIER_AVAILABLE:
+                raise ImportError("Tradier modules not available")
+
+            tradier_config = config.get('tradier', {})
+            api_token = tradier_config.get('api_token')
+            sandbox = tradier_config.get('sandbox', True)
+
+            if not api_token:
+                raise ValueError("Tradier API token not configured")
+
+            data_fetcher = TradierOptionsDataFetcher(
+                config,
+                api_token=api_token,
+                sandbox=sandbox
+            )
+            connection = None
+            logger.info("✓ Using Tradier API")
+
+        else:  # IBKR
+            if not IBKR_AVAILABLE:
+                raise ImportError("IBKR modules not available")
+
+            connection = get_ibkr_connection()
+            data_fetcher = IBKROptionsDataFetcher(config)
+            logger.info("✓ Using IBKR TWS API")
+
         whale_filters = WhaleFilters(config)
         signal_detector = SignalDetector(config)
         data_storage = DataStorage(config)
 
         return {
-            'ibkr': ibkr,
+            'provider': provider,
+            'connection': connection,
             'data_fetcher': data_fetcher,
             'whale_filters': whale_filters,
             'signal_detector': signal_detector,
@@ -96,6 +139,8 @@ def init_scanner_components(config):
         }
     except Exception as e:
         logger.error(f"Error initializing scanner: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -206,15 +251,20 @@ def scanner_worker():
         logger.error("Failed to initialize scanner")
         return
 
-    # Connect to IBKR
-    if not components['ibkr'].connect():
-        logger.error("Failed to connect to IBKR")
-        scanner_state['connected'] = False
-        socketio.emit('scanner_error', {'message': 'Failed to connect to IBKR'})
-        return
-
-    scanner_state['connected'] = True
-    socketio.emit('scanner_connected', {'message': 'Connected to IBKR'})
+    # Connect to data provider
+    provider = components.get('provider', 'ibkr')
+    if provider == 'ibkr':
+        if not components['connection'].connect():
+            logger.error("Failed to connect to IBKR")
+            scanner_state['connected'] = False
+            socketio.emit('scanner_error', {'message': 'Failed to connect to IBKR'})
+            return
+        scanner_state['connected'] = True
+        socketio.emit('scanner_connected', {'message': 'Connected to IBKR'})
+    else:
+        # Tradier is already connected
+        scanner_state['connected'] = True
+        socketio.emit('scanner_connected', {'message': 'Connected to Tradier API'})
 
     try:
         while scanner_state['running']:
@@ -271,7 +321,9 @@ def scanner_worker():
         logger.error(f"Scanner worker error: {e}", exc_info=True)
         socketio.emit('scanner_error', {'message': str(e)})
     finally:
-        components['ibkr'].disconnect()
+        # Disconnect if IBKR
+        if components.get('provider') == 'ibkr' and components.get('connection'):
+            components['connection'].disconnect()
         scanner_state['connected'] = False
         scanner_state['running'] = False
         logger.info("Scanner worker stopped")
@@ -431,12 +483,18 @@ def handle_scan_once(data):
         config = load_config()
         components = init_scanner_components(config)
 
-        if not components['ibkr'].connect():
-            emit('error', {'message': 'Failed to connect to IBKR'})
-            return
+        # Connect to data provider
+        provider = components.get('provider', 'ibkr')
+        if provider == 'ibkr':
+            if not components['connection'].connect():
+                emit('error', {'message': 'Failed to connect to IBKR'})
+                return
 
         result = scan_symbol(symbol, components)
-        components['ibkr'].disconnect()
+
+        # Disconnect if IBKR
+        if provider == 'ibkr' and components.get('connection'):
+            components['connection'].disconnect()
 
         emit('scan_result', result)
 

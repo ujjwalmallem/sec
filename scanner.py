@@ -11,11 +11,23 @@ from typing import Dict, List
 import pandas as pd
 from colorlog import ColoredFormatter
 
-from ibkr_connection import get_ibkr_connection
-from options_data import OptionsDataFetcher
 from whale_filters import WhaleFilters
 from signal_detector import SignalDetector
 from data_storage import DataStorage
+
+# Import data fetchers based on provider
+try:
+    from ibkr_connection import get_ibkr_connection
+    from options_data import OptionsDataFetcher as IBKROptionsDataFetcher
+    IBKR_AVAILABLE = True
+except ImportError:
+    IBKR_AVAILABLE = False
+
+try:
+    from tradier_options_data import TradierOptionsDataFetcher
+    TRADIER_AVAILABLE = True
+except ImportError:
+    TRADIER_AVAILABLE = False
 
 
 def setup_logging(config: dict):
@@ -78,8 +90,38 @@ class WhaleScanner:
         # Initialize components
         self.logger.info("Initializing Whale Scanner...")
 
-        self.ibkr = get_ibkr_connection(config_path)
-        self.data_fetcher = OptionsDataFetcher(self.config)
+        # Determine data provider
+        self.provider = self.config.get('data_source', {}).get('provider', 'ibkr').lower()
+        self.logger.info(f"Data provider: {self.provider.upper()}")
+
+        # Initialize data fetcher based on provider
+        if self.provider == 'tradier':
+            if not TRADIER_AVAILABLE:
+                raise ImportError("Tradier modules not available. Please check tradier_options_data.py")
+
+            tradier_config = self.config.get('tradier', {})
+            api_token = tradier_config.get('api_token')
+            sandbox = tradier_config.get('sandbox', True)
+
+            if not api_token:
+                raise ValueError("Tradier API token not configured in config.yaml")
+
+            self.data_fetcher = TradierOptionsDataFetcher(
+                self.config,
+                api_token=api_token,
+                sandbox=sandbox
+            )
+            self.connection = None  # Tradier doesn't need separate connection object
+            self.logger.info("✓ Using Tradier API (no TWS required!)")
+
+        else:  # IBKR
+            if not IBKR_AVAILABLE:
+                raise ImportError("IBKR modules not available. Please check ibkr_connection.py")
+
+            self.connection = get_ibkr_connection(config_path)
+            self.data_fetcher = IBKROptionsDataFetcher(self.config)
+            self.logger.info("✓ Using IBKR TWS API")
+
         self.whale_filters = WhaleFilters(self.config)
         self.signal_detector = SignalDetector(self.config)
         self.data_storage = DataStorage(self.config)
@@ -92,8 +134,14 @@ class WhaleScanner:
         self.logger.info(f"✓ Initialized with watchlist: {', '.join(self.watchlist)}")
 
     def connect(self) -> bool:
-        """Connect to IBKR"""
-        return self.ibkr.connect()
+        """Connect to data provider"""
+        if self.provider == 'tradier':
+            # Tradier is already connected in __init__
+            self.logger.info("✓ Tradier connection ready")
+            return True
+        else:
+            # IBKR needs explicit connection
+            return self.connection.connect()
 
     def scan_symbol(self, symbol: str) -> Dict:
         """

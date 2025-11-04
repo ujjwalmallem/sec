@@ -1,4 +1,8 @@
-# IBKR Whale Options Scanner Configuration
+# Whale Options Scanner Configuration
+
+# Data Source Selection
+data_source:
+  provider: "tradier"         # Options: "ibkr" or "tradier"
 
 # IBKR Connection Settings
 ibkr:
@@ -12,6 +16,12 @@ ibkr:
   rest_api:
     base_url: "https://localhost:5000/v1/api"
     use_rest: false
+
+# Tradier Connection Settings (RECOMMENDED - No TWS needed!)
+tradier:
+  api_token: "YapJSqXqDZ5ui8HtoP7QEyIX7CIk"    # Your Tradier API token
+  sandbox: true                                  # true = sandbox, false = production
+  account_id: "VA31706838"                       # Your Tradier account ID
 
 # Watchlist - Symbols to monitor
 watchlist:
