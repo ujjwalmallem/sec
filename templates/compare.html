@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Configurations - Whale Scanner{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                <li class="breadcrumb-item active">Compare</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-arrows-collapse"></i> Compare Configurations</h4>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/compare" class="row g-3">
+                    <div class="col-md-5">
+                        <label for="profile1" class="form-label">First Configuration</label>
+                        <select class="form-select" id="profile1" name="profile1" required>
+                            <option value="">Select a configuration...</option>
+                            {% for config in configs %}
+                            <option value="{{ config.profile_name }}"
+                                    {% if config1 and config1.profile_name == config.profile_name %}selected{% endif %}>
+                                {{ config.profile_name }}
+                                {% if config.is_active %}(Active){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end justify-content-center">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-left-right"></i> Compare
+                        </button>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="profile2" class="form-label">Second Configuration</label>
+                        <select class="form-select" id="profile2" name="profile2" required>
+                            <option value="">Select a configuration...</option>
+                            {% for config in configs %}
+                            <option value="{{ config.profile_name }}"
+                                    {% if config2 and config2.profile_name == config.profile_name %}selected{% endif %}>
+                                {{ config.profile_name }}
+                                {% if config.is_active %}(Active){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+
+                {% if config1 and config2 %}
+                <hr class="my-4">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>
+                            <i class="bi bi-gear"></i> {{ config1.profile_name }}
+                            {% if config1.is_active %}
+                            <span class="badge badge-active">Active</span>
+                            {% endif %}
+                        </h5>
+                        {% if config1.description %}
+                        <p class="text-muted small">{{ config1.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5>
+                            <i class="bi bi-gear"></i> {{ config2.profile_name }}
+                            {% if config2.is_active %}
+                            <span class="badge badge-active">Active</span>
+                            {% endif %}
+                        </h5>
+                        {% if config2.description %}
+                        <p class="text-muted small">{{ config2.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if differences %}
+                <div class="mt-4">
+                    <h5><i class="bi bi-exclamation-circle"></i> Differences Found: {{ differences|length }}</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered diff-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40%">Parameter Path</th>
+                                    <th style="width: 30%">{{ config1.profile_name }}</th>
+                                    <th style="width: 30%">{{ config2.profile_name }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for diff in differences %}
+                                <tr>
+                                    <td><code>{{ diff.path }}</code></td>
+                                    <td class="{% if diff.value1 == '<missing>' %}diff-removed{% endif %}">
+                                        {% if diff.value1 is mapping or diff.value1 is sequence %}
+                                        <pre class="mb-0 small">{{ diff.value1|tojson(indent=2) }}</pre>
+                                        {% else %}
+                                        <code>{{ diff.value1 }}</code>
+                                        {% endif %}
+                                    </td>
+                                    <td class="{% if diff.value2 == '<missing>' %}diff-removed{% elif diff.value1 != diff.value2 %}diff-added{% endif %}">
+                                        {% if diff.value2 is mapping or diff.value2 is sequence %}
+                                        <pre class="mb-0 small">{{ diff.value2|tojson(indent=2) }}</pre>
+                                        {% else %}
+                                        <code>{{ diff.value2 }}</code>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-success mt-4">
+                    <i class="bi bi-check-circle"></i> <strong>No differences found!</strong>
+                    These configurations are identical.
+                </div>
+                {% endif %}
+                {% elif request.args.get('profile1') and request.args.get('profile2') %}
+                <div class="alert alert-warning mt-4">
+                    <i class="bi bi-exclamation-triangle"></i> Please select two different configurations to compare.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

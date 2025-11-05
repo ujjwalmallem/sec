@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ config.profile_name }} - Whale Scanner{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+<style>
+    .CodeMirror {
+        height: 500px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/config/{{ config.profile_name }}">{{ config.profile_name }}</a></li>
+                <li class="breadcrumb-item active">Edit</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-pencil"></i> Edit Configuration: {{ config.profile_name }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="editForm">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" name="description"
+                               value="{{ config.description if config.description else '' }}"
+                               placeholder="Brief description of this configuration">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="config_data" class="form-label">Configuration (JSON)</label>
+                        <textarea id="config_data" name="config_data" class="form-control json-editor" required>{{ config.config_json }}</textarea>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> Edit the JSON configuration. Syntax errors will be highlighted.
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                               {% if config.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            <strong>Set as active configuration</strong>
+                            <small class="text-muted d-block">The active configuration will be used by the scanner</small>
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong>
+                            Make sure your JSON is valid before saving. Invalid JSON will not be saved.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="formatBtn">
+                            <i class="bi bi-code"></i> Format JSON
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="validateBtn">
+                            <i class="bi bi-check-circle"></i> Validate JSON
+                        </button>
+                        <a href="/config/{{ config.profile_name }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Modal -->
+<div class="modal fade" id="validationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="validationHeader">
+                <h5 class="modal-title" id="validationTitle">JSON Validation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="validationBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/json-lint.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.css">
+<script>
+    // Initialize CodeMirror
+    var editor = CodeMirror.fromTextArea(document.getElementById('config_data'), {
+        mode: { name: "javascript", json: true },
+        theme: "monokai",
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        indentUnit: 2,
+        tabSize: 2,
+        lineWrapping: true
+    });
+
+    // Format JSON button
+    document.getElementById('formatBtn').addEventListener('click', function() {
+        try {
+            var json = JSON.parse(editor.getValue());
+            var formatted = JSON.stringify(json, null, 2);
+            editor.setValue(formatted);
+            showValidation(true, 'JSON formatted successfully!');
+        } catch (e) {
+            showValidation(false, 'Invalid JSON: ' + e.message);
+        }
+    });
+
+    // Validate JSON button
+    document.getElementById('validateBtn').addEventListener('click', function() {
+        try {
+            JSON.parse(editor.getValue());
+            showValidation(true, 'JSON is valid!');
+        } catch (e) {
+            showValidation(false, 'Invalid JSON: ' + e.message);
+        }
+    });
+
+    // Form submission validation
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        try {
+            JSON.parse(editor.getValue());
+        } catch (err) {
+            e.preventDefault();
+            showValidation(false, 'Cannot save: Invalid JSON<br><br>' + err.message);
+        }
+    });
+
+    function showValidation(isValid, message) {
+        var modal = new bootstrap.Modal(document.getElementById('validationModal'));
+        var header = document.getElementById('validationHeader');
+        var body = document.getElementById('validationBody');
+
+        if (isValid) {
+            header.className = 'modal-header bg-success text-white';
+            body.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + message + '</div>';
+        } else {
+            header.className = 'modal-header bg-danger text-white';
+            body.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + message + '</div>';
+        }
+
+        modal.show();
+    }
+</script>
+{% endblock %}
