@@ -47,8 +47,31 @@ def get_storage():
     """Get or create PostgresStorage instance"""
     global storage
     if storage is None:
-        storage = PostgresStorage(base_config)
+        try:
+            storage = PostgresStorage(base_config)
+        except Exception as e:
+            logger.error(f"Failed to connect to PostgreSQL: {e}")
+            raise ConnectionError(
+                "Cannot connect to PostgreSQL database. "
+                "Please ensure PostgreSQL is running and the database is initialized. "
+                f"Error: {str(e)}"
+            )
     return storage
+
+# Error Handlers
+
+@app.errorhandler(ConnectionError)
+def handle_connection_error(e):
+    """Handle database connection errors"""
+    return render_template('error.html',
+                         error_title="Database Connection Error",
+                         error_message=str(e),
+                         suggestions=[
+                             "Start PostgreSQL: brew services start postgresql (macOS) or sudo systemctl start postgresql (Linux)",
+                             "Initialize database: python database/setup_postgres.py",
+                             "Check config.yaml for correct database settings",
+                             "Verify PostgreSQL is listening on localhost:5432"
+                         ]), 500
 
 # Routes
 
