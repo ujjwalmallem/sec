@@ -7,6 +7,9 @@ import sys
 import yaml
 import json
 import argparse
+import os
+import tempfile
+import subprocess
 from datetime import datetime
 from postgres_storage import PostgresStorage
 from tabulate import tabulate
@@ -174,6 +177,217 @@ def export_configuration(storage, profile_name, output_file):
         sys.exit(1)
 
 
+def edit_configuration(storage, profile_name):
+    """Edit configuration in text editor"""
+    config = storage.get_configuration(profile_name)
+
+    if not config:
+        print(f"Configuration profile '{profile_name}' not found.")
+        sys.exit(1)
+
+    # Create temporary file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as tf:
+        yaml.dump(config['config_data'], tf, default_flow_style=False, sort_keys=False)
+        temp_path = tf.name
+
+    try:
+        # Get editor from environment or use default
+        editor = os.environ.get('EDITOR', 'vi')
+
+        # Open editor
+        print(f"Opening {profile_name} in {editor}...")
+        subprocess.call([editor, temp_path])
+
+        # Read back edited content
+        with open(temp_path, 'r') as f:
+            edited_config = yaml.safe_load(f)
+
+        # Ask for confirmation
+        print("\nConfiguration has been edited.")
+        response = input(f"Save changes to '{profile_name}'? (yes/no): ")
+
+        if response.lower() == 'yes':
+            # Save updated configuration
+            success = storage.save_configuration(
+                profile_name,
+                edited_config,
+                config.get('description'),
+                config.get('is_active', False)
+            )
+
+            if success:
+                print(f"✓ Updated configuration: {profile_name}")
+            else:
+                print(f"✗ Failed to save configuration")
+                sys.exit(1)
+        else:
+            print("Changes discarded.")
+
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+def set_config_value(storage, profile_name, key_path, value):
+    """Set a specific value in configuration"""
+    config = storage.get_configuration(profile_name)
+
+    if not config:
+        print(f"Configuration profile '{profile_name}' not found.")
+        sys.exit(1)
+
+    # Parse key path (e.g., "whale_filters.liquidity_gate.min_volume")
+    keys = key_path.split('.')
+    config_data = config['config_data']
+
+    # Navigate to the nested key
+    current = config_data
+    for key in keys[:-1]:
+        if key not in current:
+            current[key] = {}
+        current = current[key]
+
+    # Set the value
+    final_key = keys[-1]
+    old_value = current.get(final_key, 'N/A')
+
+    # Try to convert value to appropriate type
+    try:
+        # Try as int
+        if value.isdigit():
+            new_value = int(value)
+        # Try as float
+        elif '.' in value and value.replace('.', '').isdigit():
+            new_value = float(value)
+        # Try as boolean
+        elif value.lower() in ('true', 'false'):
+            new_value = value.lower() == 'true'
+        # Try as JSON
+        elif value.startswith('[') or value.startswith('{'):
+            new_value = json.loads(value)
+        else:
+            new_value = value
+    except:
+        new_value = value
+
+    current[final_key] = new_value
+
+    print(f"\nChanging {key_path}:")
+    print(f"  Old value: {old_value}")
+    print(f"  New value: {new_value}")
+
+    response = input(f"\nSave changes to '{profile_name}'? (yes/no): ")
+
+    if response.lower() == 'yes':
+        success = storage.save_configuration(
+            profile_name,
+            config_data,
+            config.get('description'),
+            config.get('is_active', False)
+        )
+
+        if success:
+            print(f"✓ Updated {key_path} in {profile_name}")
+        else:
+            print(f"✗ Failed to update configuration")
+            sys.exit(1)
+    else:
+        print("Changes discarded.")
+
+
+def get_config_value(storage, profile_name, key_path):
+    """Get a specific value from configuration"""
+    config = storage.get_configuration(profile_name)
+
+    if not config:
+        print(f"Configuration profile '{profile_name}' not found.")
+        sys.exit(1)
+
+    # Parse key path
+    keys = key_path.split('.')
+    config_data = config['config_data']
+
+    # Navigate to the value
+    current = config_data
+    try:
+        for key in keys:
+            current = current[key]
+
+        print(f"\n{profile_name}.{key_path}:")
+        if isinstance(current, dict):
+            print(yaml.dump(current, default_flow_style=False))
+        else:
+            print(f"  {current}")
+
+    except (KeyError, TypeError):
+        print(f"Key path '{key_path}' not found in {profile_name}")
+        sys.exit(1)
+
+
+def diff_configurations(storage, profile1, profile2):
+    """Compare two configuration profiles"""
+    config1 = storage.get_configuration(profile1)
+    config2 = storage.get_configuration(profile2)
+
+    if not config1:
+        print(f"Configuration profile '{profile1}' not found.")
+        sys.exit(1)
+
+    if not config2:
+        print(f"Configuration profile '{profile2}' not found.")
+        sys.exit(1)
+
+    print(f"\nComparing: {profile1} vs {profile2}\n")
+    print("=" * 60)
+
+    # Find differences
+    differences = []
+    _find_differences(config1['config_data'], config2['config_data'], '', differences)
+
+    if not differences:
+        print("✓ Configurations are identical")
+    else:
+        print(f"Found {len(differences)} difference(s):\n")
+        for diff in differences:
+            print(f"  {diff['path']}:")
+            print(f"    {profile1}: {diff['value1']}")
+            print(f"    {profile2}: {diff['value2']}")
+            print()
+
+
+def _find_differences(dict1, dict2, path, differences):
+    """Recursively find differences between two dictionaries"""
+    # Check keys in dict1
+    for key in dict1:
+        current_path = f"{path}.{key}" if path else key
+
+        if key not in dict2:
+            differences.append({
+                'path': current_path,
+                'value1': dict1[key],
+                'value2': 'N/A'
+            })
+        elif isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+            _find_differences(dict1[key], dict2[key], current_path, differences)
+        elif dict1[key] != dict2[key]:
+            differences.append({
+                'path': current_path,
+                'value1': dict1[key],
+                'value2': dict2[key]
+            })
+
+    # Check keys only in dict2
+    for key in dict2:
+        if key not in dict1:
+            current_path = f"{path}.{key}" if path else key
+            differences.append({
+                'path': current_path,
+                'value1': 'N/A',
+                'value2': dict2[key]
+            })
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Manage scanner configuration profiles in PostgreSQL',
@@ -209,6 +423,18 @@ Examples:
 
   # Delete a profile
   python config_manager.py delete testing
+
+  # Edit a profile interactively
+  python config_manager.py edit production
+
+  # Set a specific value
+  python config_manager.py set production whale_filters.liquidity_gate.min_volume 750000
+
+  # Get a specific value
+  python config_manager.py get production whale_filters.liquidity_gate.min_volume
+
+  # Compare two profiles
+  python config_manager.py diff default aggressive
         '''
     )
 
@@ -254,6 +480,26 @@ Examples:
     delete_parser.add_argument('profile', help='Profile name')
     delete_parser.add_argument('--force', action='store_true', help='Skip confirmation')
 
+    # Edit command
+    edit_parser = subparsers.add_parser('edit', help='Edit configuration in text editor')
+    edit_parser.add_argument('profile', help='Profile name')
+
+    # Set command
+    set_parser = subparsers.add_parser('set', help='Set a specific configuration value')
+    set_parser.add_argument('profile', help='Profile name')
+    set_parser.add_argument('key', help='Key path (e.g., whale_filters.liquidity_gate.min_volume)')
+    set_parser.add_argument('value', help='New value')
+
+    # Get command
+    get_parser = subparsers.add_parser('get', help='Get a specific configuration value')
+    get_parser.add_argument('profile', help='Profile name')
+    get_parser.add_argument('key', help='Key path (e.g., whale_filters.liquidity_gate.min_volume)')
+
+    # Diff command
+    diff_parser = subparsers.add_parser('diff', help='Compare two configuration profiles')
+    diff_parser.add_argument('profile1', help='First profile name')
+    diff_parser.add_argument('profile2', help='Second profile name')
+
     args = parser.parse_args()
 
     if not args.command:
@@ -295,6 +541,18 @@ Examples:
 
         elif args.command == 'delete':
             delete_configuration(storage, args.profile, args.force)
+
+        elif args.command == 'edit':
+            edit_configuration(storage, args.profile)
+
+        elif args.command == 'set':
+            set_config_value(storage, args.profile, args.key, args.value)
+
+        elif args.command == 'get':
+            get_config_value(storage, args.profile, args.key)
+
+        elif args.command == 'diff':
+            diff_configurations(storage, args.profile1, args.profile2)
 
     finally:
         storage.close()
