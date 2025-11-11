@@ -338,7 +338,7 @@ def run_scanner_once():
 def main():
     """Run Flask server"""
     host = os.getenv('API_HOST', '0.0.0.0')
-    port = int(os.getenv('API_PORT', 5000))
+    port = int(os.getenv('API_PORT', 8000))
 
     logger.info(f"Starting Whale Scanner API on {host}:{port}")
     app.run(host=host, port=port, debug=False)
