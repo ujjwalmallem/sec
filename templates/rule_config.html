@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Configuration - Whale Scanner</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <style>
+        .rule-editor {
+            background: #1a1f2e;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .rule-header-edit {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #374151;
+        }
+
+        .rule-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .rule-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #374151;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #10b981;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+        }
+
+        .param-label {
+            display: block;
+            color: #9ca3af;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .param-input-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .param-input {
+            flex: 1;
+            padding: 10px;
+            background: #242b3d;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+
+        .param-slider {
+            flex: 1;
+            height: 6px;
+            background: #374151;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .param-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .param-value {
+            min-width: 80px;
+            text-align: right;
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .save-button {
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .save-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .save-button:disabled {
+            background: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .rule-description {
+            color: #9ca3af;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #60a5fa;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .back-link:hover {
+            color: #3b82f6;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #374151;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #60a5fa;
+            border-bottom-color: #3b82f6;
+        }
+
+        .tab:hover {
+            color: #60a5fa;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎛️ Rule Configuration</h1>
+            <a href="/" class="back-link">← Back to Dashboard</a>
+        </header>
+
+        <section>
+            <div class="tabs-container">
+                <button class="tab active" data-type="FILTER">Filter Rules</button>
+                <button class="tab" data-type="SIGNAL">Signal Rules</button>
+                <button class="tab" data-type="COMBO">Combo Rules</button>
+            </div>
+
+            <div id="rules-container">
+                <p class="loading">Loading rules...</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let currentType = 'FILTER';
+        let rules = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            loadRules();
+        });
+
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentType = tab.dataset.type;
+                    renderRules();
+                });
+            });
+        }
+
+        async function loadRules() {
+            try {
+                const response = await fetch('/api/rules');
+                const data = await response.json();
+                rules = data.rules;
+                renderRules();
+            } catch (error) {
+                console.error('Error loading rules:', error);
+                showMessage('Error loading rules', 'error');
+            }
+        }
+
+        function renderRules() {
+            const container = document.getElementById('rules-container');
+            const filteredRules = rules.filter(r => r.rule_type === currentType);
+
+            if (filteredRules.length === 0) {
+                container.innerHTML = '<p class="loading">No rules found</p>';
+                return;
+            }
+
+            container.innerHTML = filteredRules.map(rule => renderRuleEditor(rule)).join('');
+
+            // Attach event listeners
+            filteredRules.forEach(rule => {
+                attachRuleListeners(rule);
+            });
+        }
+
+        function renderRuleEditor(rule) {
+            const config = rule.rule_config;
+            const params = Object.keys(config);
+
+            return `
+                <div class="rule-editor" data-rule="${rule.rule_name}">
+                    <div class="rule-header-edit">
+                        <div>
+                            <div class="rule-title">${formatRuleName(rule.rule_name)}</div>
+                            <div class="rule-description">${rule.description}</div>
+                        </div>
+                        <div class="rule-toggle">
+                            <span style="color: #9ca3af;">Enabled</span>
+                            <div class="toggle-switch ${rule.is_active ? 'active' : ''}"
+                                 data-rule="${rule.rule_name}"
+                                 data-active="${rule.is_active}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="params-container">
+                        ${params.map(param => renderParam(rule.rule_name, param, config[param])).join('')}
+                    </div>
+                    <button class="save-button" data-rule="${rule.rule_name}">Save Changes</button>
+                </div>
+            `;
+        }
+
+        function renderParam(ruleName, param, value) {
+            const paramLabel = formatParamName(param);
+
+            // Boolean parameters
+            if (typeof value === 'boolean') {
+                return `
+                    <div class="param-group">
+                        <label class="param-label">${paramLabel}</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox"
+                                   class="checkbox-input param-checkbox"
+                                   data-rule="${ruleName}"
+                                   data-param="${param}"
+                                   ${value ? 'checked' : ''}>
+                            <span style="color: #9ca3af;">${value ? 'Yes' : 'No'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // String parameters
+            if (typeof value === 'string') {
+                return `
+                    <div class="param-group">
+                        <label class="param-label">${paramLabel}</label>
+                        <input type="text"
+                               class="param-input"
+                               data-rule="${ruleName}"
+                               data-param="${param}"
+                               value="${value}">
+                    </div>
+                `;
+            }
+
+            // Numeric parameters with intelligent ranges
+            const range = getParamRange(param, value);
+
+            return `
+                <div class="param-group">
+                    <label class="param-label">${paramLabel}</label>
+                    <div class="param-input-group">
+                        <input type="range"
+                               class="param-slider"
+                               data-rule="${ruleName}"
+                               data-param="${param}"
+                               min="${range.min}"
+                               max="${range.max}"
+                               step="${range.step}"
+                               value="${value}">
+                        <span class="param-value" data-rule="${ruleName}" data-param="${param}">${formatValue(value)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getParamRange(param, currentValue) {
+            const paramName = param.toLowerCase();
+
+            // Volume/OI thresholds
+            if (paramName.includes('volume') || paramName.includes('oi')) {
+                if (currentValue < 1000) return { min: 10, max: 10000, step: 10 };
+                if (currentValue < 10000) return { min: 100, max: 50000, step: 100 };
+                if (currentValue < 100000) return { min: 1000, max: 500000, step: 1000 };
+                return { min: 10000, max: 2000000, step: 10000 };
+            }
+
+            // Multipliers (1.0x - 10.0x)
+            if (paramName.includes('multiplier') || paramName.includes('vs_avg')) {
+                return { min: 1.0, max: 10.0, step: 0.1 };
+            }
+
+            // Ratios (0.0 - 3.0)
+            if (paramName.includes('ratio') || paramName.includes('pc_')) {
+                return { min: 0.0, max: 3.0, step: 0.1 };
+            }
+
+            // Sigma/deviation (0.0 - 5.0)
+            if (paramName.includes('sigma') || paramName.includes('deviation') || paramName.includes('threshold')) {
+                return { min: 0.1, max: 5.0, step: 0.1 };
+            }
+
+            // IV Rank (0-100)
+            if (paramName.includes('ivr') || paramName.includes('iv_rank')) {
+                return { min: 0, max: 100, step: 5 };
+            }
+
+            // Days
+            if (paramName.includes('days') || paramName.includes('lookback') || paramName.includes('dte')) {
+                return { min: 1, max: 365, step: 1 };
+            }
+
+            // Default range
+            if (currentValue < 10) return { min: 0, max: 20, step: 0.5 };
+            if (currentValue < 100) return { min: 0, max: 200, step: 1 };
+            if (currentValue < 1000) return { min: 0, max: 2000, step: 10 };
+            return { min: 0, max: currentValue * 2, step: 100 };
+        }
+
+        function formatValue(value) {
+            if (typeof value === 'number') {
+                if (value >= 1000) return value.toLocaleString();
+                if (value % 1 !== 0) return value.toFixed(2);
+                return value.toString();
+            }
+            return value;
+        }
+
+        function formatRuleName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatParamName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function attachRuleListeners(rule) {
+            const ruleName = rule.rule_name;
+
+            // Toggle switch
+            const toggle = document.querySelector(`.toggle-switch[data-rule="${ruleName}"]`);
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    const isActive = toggle.classList.contains('active');
+                    toggleRule(ruleName, !isActive);
+                });
+            }
+
+            // Sliders
+            document.querySelectorAll(`.param-slider[data-rule="${ruleName}"]`).forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const param = e.target.dataset.param;
+                    const valueSpan = document.querySelector(`.param-value[data-rule="${ruleName}"][data-param="${param}"]`);
+                    if (valueSpan) {
+                        valueSpan.textContent = formatValue(parseFloat(e.target.value));
+                    }
+                });
+            });
+
+            // Save button
+            const saveButton = document.querySelector(`.save-button[data-rule="${ruleName}"]`);
+            if (saveButton) {
+                saveButton.addEventListener('click', () => saveRule(ruleName));
+            }
+        }
+
+        async function toggleRule(ruleName, isActive) {
+            try {
+                const response = await fetch(`/api/rules/${ruleName}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: isActive })
+                });
+
+                if (response.ok) {
+                    showMessage(`Rule ${isActive ? 'enabled' : 'disabled'}`, 'success');
+                    const toggle = document.querySelector(`.toggle-switch[data-rule="${ruleName}"]`);
+                    if (isActive) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                } else {
+                    const error = await response.json();
+                    showMessage(`Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveRule(ruleName) {
+            const ruleEditor = document.querySelector(`.rule-editor[data-rule="${ruleName}"]`);
+            const newConfig = {};
+
+            // Collect all parameters
+            ruleEditor.querySelectorAll('.param-slider, .param-input, .param-checkbox').forEach(input => {
+                const param = input.dataset.param;
+                let value;
+
+                if (input.type === 'checkbox') {
+                    value = input.checked;
+                } else if (input.classList.contains('param-slider')) {
+                    value = parseFloat(input.value);
+                } else if (input.type === 'text') {
+                    value = input.value;
+                } else {
+                    value = parseFloat(input.value) || 0;
+                }
+
+                newConfig[param] = value;
+            });
+
+            try {
+                const response = await fetch(`/api/rules/${ruleName}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config: newConfig })
+                });
+
+                if (response.ok) {
+                    showMessage('Rule saved successfully!', 'success');
+                    await loadRules(); // Reload to get updated values
+                } else {
+                    const error = await response.json();
+                    showMessage(`Error: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const notification = document.createElement('div');
+            notification.className = type === 'error' ? 'error' : 'success';
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '1000';
+            notification.style.maxWidth = '400px';
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -44,6 +44,12 @@ def dashboard():
     return render_template('whale_dashboard.html')
 
 
+@app.route('/rules')
+def rules_config():
+    """Serve rule configuration page"""
+    return render_template('rule_config.html')
+
+
 # =============================================================================
 # HEALTH & STATUS
 # =============================================================================
