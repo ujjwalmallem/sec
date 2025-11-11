@@ -337,6 +337,12 @@ def index():
     return render_template('dashboard.html')
 
 
+@app.route('/health')
+def health():
+    """Health check endpoint for Docker"""
+    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
+
 @app.route('/api/status')
 def get_status():
     """Get scanner status"""

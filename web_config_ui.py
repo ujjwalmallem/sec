@@ -87,6 +87,12 @@ def index():
         flash(f"Error: {str(e)}", "error")
         return render_template('index.html', configs=[])
 
+@app.route('/health')
+def health():
+    """Health check endpoint for Docker"""
+    from datetime import datetime
+    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
 @app.route('/config/<profile_name>')
 def view_config(profile_name):
     """View a specific configuration"""
