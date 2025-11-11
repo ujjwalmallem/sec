@@ -49,7 +49,7 @@ IBKR_PORT=7497
 
 ### 3. Access the Application
 
-- **Main Web UI**: http://localhost:5000
+- **Main Web UI**: http://localhost:8000
 - **Config UI**: http://localhost:5001
 
 ## Common Commands
@@ -127,7 +127,7 @@ docker-compose up -d
 
 ## Next Steps
 
-- Configure watchlist via Web UI: http://localhost:5000
+- Configure watchlist via Web UI: http://localhost:8000
 - Adjust scanner settings: http://localhost:5001
 - View full documentation: [DOCKER_README.md](DOCKER_README.md)
 
