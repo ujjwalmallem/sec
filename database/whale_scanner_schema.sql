@@ -74,47 +74,47 @@ CREATE INDEX idx_whale_rules_config ON whale_rules USING gin(rule_config);
 -- Insert whale rules based on provided logic
 INSERT INTO whale_rules (rule_name, rule_type, description, rule_config, priority, is_active) VALUES
 
--- CORE FILTERS (Gates 1-4)
+-- CORE FILTERS (Gates 1-4) - RELAXED FOR TESTING
 ('liquidity_gate', 'FILTER', 'Gate 1: Liquidity filter - Volume and OI thresholds',
- '{"min_volume": 500000, "min_oi": 100000, "min_oi_per_strike": 5000}'::jsonb, 100, true),
+ '{"min_volume": 1000, "min_oi": 500, "min_oi_per_strike": 10}'::jsonb, 100, true),
 
 ('anomaly_gate', 'FILTER', 'Gate 2: P/C ratio anomaly detection',
- '{"pc_deviation_threshold": 1.5, "pc_lookback_days": 20, "pc_bullish_threshold": 0.7, "pc_bearish_threshold": 1.3, "pc_extreme_low": 0.3, "pc_extreme_high": 1.5}'::jsonb, 90, true),
+ '{"pc_deviation_threshold": 0.3, "pc_lookback_days": 20, "pc_bullish_threshold": 0.7, "pc_bearish_threshold": 1.3, "pc_extreme_low": 0.3, "pc_extreme_high": 1.5}'::jsonb, 90, true),
 
 ('conviction_gate', 'FILTER', 'Gate 3: Volume vs OI conviction filter',
- '{"volume_vs_avg_multiplier": 2.0, "oi_growth_required": true, "oi_delta_min": 25000, "volume_vs_10d_avg": 3.0}'::jsonb, 80, true),
+ '{"volume_vs_avg_multiplier": 1.1, "oi_growth_required": false, "oi_delta_min": 50, "volume_vs_10d_avg": 1.2}'::jsonb, 80, true),
 
 ('volatility_gate', 'FILTER', 'Gate 4: IV Rank extremes',
- '{"ivr_expensive": 80, "ivr_cheap": 20, "ivr_extreme_high": 90, "ivr_extreme_low": 10, "ivr_lookback_days": 252}'::jsonb, 70, true),
+ '{"ivr_expensive": 60, "ivr_cheap": 40, "ivr_extreme_high": 70, "ivr_extreme_low": 30, "ivr_lookback_days": 252}'::jsonb, 70, true),
 
--- BASIC FILTERS
+-- BASIC FILTERS - RELAXED
 ('volume_greater_than_oi', 'FILTER', 'Volume must exceed Open Interest',
- '{"enabled": true}'::jsonb, 60, true),
+ '{"enabled": false}'::jsonb, 60, true),
 
 ('min_oi_threshold', 'FILTER', 'Minimum OI requirement',
- '{"min_oi": 5000}'::jsonb, 50, true),
+ '{"min_oi": 100}'::jsonb, 50, true),
 
 ('pc_ratio_extreme', 'FILTER', 'P/C ratio <= 0.3 (extreme bullish)',
- '{"max_pc_ratio": 0.3}'::jsonb, 40, true),
+ '{"max_pc_ratio": 2.0}'::jsonb, 40, true),
 
--- SIGNAL DETECTION RULES
+-- SIGNAL DETECTION RULES - RELAXED
 ('strong_bull_signal', 'SIGNAL', 'Strong bullish: Low P/C + High call vol + Rising call OI + Low IVR',
- '{"pc_ratio_max": 0.7, "call_volume_min_multiplier": 2.0, "call_oi_increasing": true, "ivr_max": 30}'::jsonb, 95, true),
+ '{"pc_ratio_max": 1.2, "call_volume_min_multiplier": 1.2, "call_oi_increasing": false, "ivr_max": 60}'::jsonb, 95, true),
 
 ('institutional_hedge', 'SIGNAL', 'Crash protection: High P/C + Put spike + Rising put OI + High IVR',
- '{"pc_ratio_min": 1.3, "put_volume_spike_multiplier": 3.0, "put_oi_increasing": true, "ivr_min": 90}'::jsonb, 94, true),
+ '{"pc_ratio_min": 0.8, "put_volume_spike_multiplier": 1.5, "put_oi_increasing": false, "ivr_min": 40}'::jsonb, 94, true),
 
 ('retail_fomo', 'SIGNAL', 'Retail FOMO: P/C <0.3 + Volume 5x avg + No OI change (FADE)',
- '{"pc_ratio_max": 0.3, "volume_multiplier": 5.0, "oi_change_max": 1000, "fade_signal": true}'::jsonb, 85, true),
+ '{"pc_ratio_max": 2.0, "volume_multiplier": 1.5, "oi_change_max": 50000, "fade_signal": true}'::jsonb, 85, true),
 
--- COMBO SIGNALS
+-- COMBO SIGNALS - RELAXED
 ('whale_conviction', 'COMBO', 'High conviction whale: Volume >2x avg + P/C deviation + OI delta + IV extreme',
- '{"volume_multiplier": 2.0, "pc_deviation_sigma": 1.5, "oi_delta_min": 10000, "ivr_extreme": true}'::jsonb, 98, true),
+ '{"volume_multiplier": 1.2, "pc_deviation_sigma": 0.3, "oi_delta_min": 100, "ivr_extreme": false}'::jsonb, 98, true),
 
 ('custom_scanner', 'COMBO', 'Custom scanner: Volume spike + P/C anomaly + OI change + IV extremes',
- '{"volume_vs_20d_avg": 2.0, "pc_deviation_sigma": 1.5, "oi_change_min": 10000, "ivr_high": 80, "ivr_low": 20}'::jsonb, 97, true),
+ '{"volume_vs_20d_avg": 1.2, "pc_deviation_sigma": 0.3, "oi_change_min": 100, "ivr_high": 60, "ivr_low": 40}'::jsonb, 97, true),
 
--- OI PATTERN RULES
+-- OI PATTERN RULES - RELAXED
 ('smart_money_long', 'SIGNAL', 'OI ↑ in Calls + Price ↑ = Smart money long',
  '{"call_oi_increasing": true, "price_trend": "up", "action": "FOLLOW"}'::jsonb, 88, true),
 
@@ -124,12 +124,12 @@ INSERT INTO whale_rules (rule_name, rule_type, description, rule_config, priorit
 ('short_squeeze_fuel', 'SIGNAL', 'OI ↓ in Puts + Price ↓ = Put covering, short squeeze fuel',
  '{"put_oi_decreasing": true, "price_trend": "down", "action": "BUY_CALLS"}'::jsonb, 86, true),
 
--- IV RULES
+-- IV RULES - RELAXED
 ('iv_crush_opportunity', 'SIGNAL', 'Sell premium when IVR >90 pre-event',
- '{"ivr_min": 90, "action": "SELL_PREMIUM", "dte_max": 2}'::jsonb, 75, true),
+ '{"ivr_min": 60, "action": "SELL_PREMIUM", "dte_max": 30}'::jsonb, 75, true),
 
 ('cheap_volatility', 'SIGNAL', 'Buy calendars when IVR <10',
- '{"ivr_max": 10, "action": "BUY_CALENDARS"}'::jsonb, 74, true);
+ '{"ivr_max": 40, "action": "BUY_CALENDARS"}'::jsonb, 74, true);
 
 -- ============================================================================
 -- SCAN RUNS - Track each scanner execution
