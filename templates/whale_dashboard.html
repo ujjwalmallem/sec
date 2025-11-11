@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whale Scanner Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐋 Whale Scanner Dashboard</h1>
+            <div class="status-bar">
+                <span id="scanner-status">Scanner: Stopped</span>
+                <span id="last-update">Last Update: Never</span>
+            </div>
+        </header>
+
+        <!-- Control Panel -->
+        <section class="control-panel">
+            <h2>Scanner Control</h2>
+            <div class="controls">
+                <button id="btn-scan-once" class="btn btn-primary">Run Scan Once</button>
+                <button id="btn-start" class="btn btn-success">Start Continuous</button>
+                <button id="btn-stop" class="btn btn-danger" disabled>Stop</button>
+            </div>
+        </section>
+
+        <!-- Active Signals -->
+        <section class="signals-section">
+            <h2>Active Whale Signals</h2>
+            <div id="signals-container">
+                <p class="loading">No signals yet. Run a scan to detect whale activity.</p>
+            </div>
+        </section>
+
+        <!-- Watchlist -->
+        <section class="watchlist-section">
+            <h2>Watchlist</h2>
+            <div class="watchlist-controls">
+                <input type="text" id="new-ticker" placeholder="Enter symbol (e.g., AAPL)" />
+                <button id="btn-add-ticker" class="btn btn-small">Add Ticker</button>
+            </div>
+            <div id="watchlist-container">
+                <p class="loading">Loading watchlist...</p>
+            </div>
+        </section>
+
+        <!-- Rules -->
+        <section class="rules-section">
+            <h2>Active Whale Rules</h2>
+            <div class="rules-tabs">
+                <button class="tab-btn active" data-type="all">All</button>
+                <button class="tab-btn" data-type="FILTER">Filters</button>
+                <button class="tab-btn" data-type="SIGNAL">Signals</button>
+                <button class="tab-btn" data-type="COMBO">Combos</button>
+            </div>
+            <div id="rules-container">
+                <p class="loading">Loading rules...</p>
+            </div>
+        </section>
+
+        <!-- Recent Scans -->
+        <section class="scans-section">
+            <h2>Recent Scans</h2>
+            <div id="scans-container">
+                <p class="loading">Loading recent scans...</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

@@ -13,7 +13,7 @@ services:
       POSTGRES_INITDB_ARGS: "-E UTF8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/whale_scanner_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -24,14 +24,14 @@ services:
     networks:
       - whale-network
 
-  # Main Web Application
-  web-app:
+  # Main Web Application & API
+  api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: whale-scanner-web
+    container_name: whale-scanner-api
     restart: unless-stopped
-    command: python web_app.py
+    command: python api_server.py
     environment:
       # Database configuration
       DB_TYPE: ${DB_TYPE:-postgresql}
@@ -47,17 +47,14 @@ services:
       WEB_HOST: ${WEB_HOST:-0.0.0.0}
       WEB_PORT: ${WEB_PORT:-5000}
 
-      # Data provider (ibkr or tradier)
-      DATA_PROVIDER: ${DATA_PROVIDER:-tradier}
+      # Application settings
+      API_HOST: ${API_HOST:-0.0.0.0}
+      API_PORT: ${API_PORT:-5000}
 
-      # IBKR settings (if using IBKR)
-      IBKR_HOST: ${IBKR_HOST:-host.docker.internal}
-      IBKR_PORT: ${IBKR_PORT:-7497}
-      IBKR_CLIENT_ID: ${IBKR_CLIENT_ID:-1}
-
-      # Tradier settings (if using Tradier)
+      # Tradier settings
       TRADIER_API_KEY: ${TRADIER_API_KEY:-}
       TRADIER_ACCOUNT_ID: ${TRADIER_ACCOUNT_ID:-}
+      TRADIER_SANDBOX: ${TRADIER_SANDBOX:-true}
     ports:
       - "${WEB_PORT:-5000}:5000"
     volumes:
@@ -71,81 +68,6 @@ services:
       - whale-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-  # Configuration UI
-  config-ui:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: whale-scanner-config-ui
-    restart: unless-stopped
-    command: python web_config_ui.py
-    environment:
-      # Database configuration
-      DB_TYPE: ${DB_TYPE:-postgresql}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-whale_scanner}
-      POSTGRES_USER: ${POSTGRES_USER:-whale_scanner}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_password}
-
-      # Application settings
-      FLASK_ENV: ${FLASK_ENV:-production}
-      FLASK_DEBUG: ${FLASK_DEBUG:-0}
-      CONFIG_UI_HOST: ${CONFIG_UI_HOST:-0.0.0.0}
-      CONFIG_UI_PORT: ${CONFIG_UI_PORT:-5001}
-    ports:
-      - "${CONFIG_UI_PORT:-5001}:5001"
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - whale-network
-
-  # CLI Scanner (optional - can be run manually)
-  scanner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: whale-scanner-cli
-    restart: "no"
-    command: python scanner.py --continuous --interval 60
-    environment:
-      # Database configuration
-      DB_TYPE: ${DB_TYPE:-postgresql}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-whale_scanner}
-      POSTGRES_USER: ${POSTGRES_USER:-whale_scanner}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_password}
-
-      # Data provider
-      DATA_PROVIDER: ${DATA_PROVIDER:-tradier}
-
-      # IBKR settings
-      IBKR_HOST: ${IBKR_HOST:-host.docker.internal}
-      IBKR_PORT: ${IBKR_PORT:-7497}
-      IBKR_CLIENT_ID: ${IBKR_CLIENT_ID:-1}
-
-      # Tradier settings
-      TRADIER_API_KEY: ${TRADIER_API_KEY:-}
-      TRADIER_ACCOUNT_ID: ${TRADIER_ACCOUNT_ID:-}
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config.yaml:/app/config.yaml:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - whale-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    profiles:
-      - scanner  # Only start with: docker-compose --profile scanner up
 
 volumes:
   postgres_data:

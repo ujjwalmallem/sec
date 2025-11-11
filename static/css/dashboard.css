@@ -1,0 +1,345 @@
+/* Whale Scanner Dashboard Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+    background: #0a0e1a;
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.status-bar {
+    display: flex;
+    gap: 30px;
+    font-size: 0.95em;
+    opacity: 0.9;
+}
+
+.status-bar span {
+    color: #fff;
+}
+
+section {
+    background: #1a1f2e;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+section h2 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    color: #60a5fa;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 10px;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Control Panel */
+.controls {
+    display: flex;
+    gap: 15px;
+}
+
+/* Signals */
+.signal-card {
+    background: #242b3d;
+    border-left: 4px solid #3b82f6;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.signal-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+.signal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.signal-symbol {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #60a5fa;
+}
+
+.signal-strength {
+    background: #3b82f6;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.signal-type {
+    color: #fbbf24;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.signal-description {
+    color: #9ca3af;
+    margin-bottom: 12px;
+}
+
+.signal-action {
+    display: inline-block;
+    background: #065f46;
+    color: #10b981;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+/* Watchlist */
+.watchlist-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.watchlist-controls input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    background: #1f2937;
+    color: #e0e0e0;
+    font-size: 1em;
+}
+
+.ticker-card {
+    background: #242b3d;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticker-symbol {
+    font-weight: bold;
+    color: #60a5fa;
+    font-size: 1.1em;
+}
+
+.ticker-name {
+    color: #9ca3af;
+    font-size: 0.9em;
+}
+
+.ticker-remove {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.ticker-remove:hover {
+    background: #b91c1c;
+}
+
+/* Rules */
+.rules-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: #242b3d;
+    color: #9ca3af;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.tab-btn:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.rule-card {
+    background: #242b3d;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.rule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.rule-name {
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+.rule-type {
+    background: #374151;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #9ca3af;
+}
+
+.rule-description {
+    color: #9ca3af;
+    font-size: 0.9em;
+}
+
+/* Scans */
+.scan-row {
+    background: #242b3d;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 15px;
+    align-items: center;
+}
+
+.scan-status {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.scan-status.completed {
+    background: #065f46;
+    color: #10b981;
+}
+
+.scan-status.failed {
+    background: #7f1d1d;
+    color: #ef4444;
+}
+
+/* Loading */
+.loading {
+    text-align: center;
+    color: #9ca3af;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Utility */
+.error {
+    background: #7f1d1d;
+    color: #fca5a5;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.success {
+    background: #065f46;
+    color: #86efac;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+}
