@@ -252,7 +252,7 @@ docker-compose ps
 
 ### 3. Access Dashboard
 
-Open browser: **http://localhost:5000**
+Open browser: **http://localhost:8000**
 
 ---
 
@@ -260,7 +260,7 @@ Open browser: **http://localhost:5000**
 
 ### Via Web Dashboard (Recommended)
 
-1. Open http://localhost:5000
+1. Open http://localhost:8000
 2. Click "Run Scan Once" to test
 3. View detected signals in real-time
 4. Click "Start Continuous" for live monitoring
@@ -279,15 +279,15 @@ docker-compose exec api python whale_scanner.py --mode continuous --interval 60
 
 ```bash
 # Run once
-curl -X POST http://localhost:5000/api/scanner/run-once
+curl -X POST http://localhost:8000/api/scanner/run-once
 
 # Start continuous
-curl -X POST http://localhost:5000/api/scanner/start \
+curl -X POST http://localhost:8000/api/scanner/start \
   -H "Content-Type: application/json" \
   -d '{"interval": 60}'
 
 # Stop
-curl -X POST http://localhost:5000/api/scanner/stop
+curl -X POST http://localhost:8000/api/scanner/stop
 ```
 
 ---
@@ -411,7 +411,7 @@ db.update_rule_config('anomaly_gate', {
 ### Via API
 
 ```bash
-curl -X PUT http://localhost:5000/api/rules/liquidity_gate \
+curl -X PUT http://localhost:8000/api/rules/liquidity_gate \
   -H "Content-Type: application/json" \
   -d '{
     "config": {
@@ -425,7 +425,7 @@ curl -X PUT http://localhost:5000/api/rules/liquidity_gate \
 
 ```bash
 # Disable retail FOMO detection
-curl -X POST http://localhost:5000/api/rules/retail_fomo/toggle \
+curl -X POST http://localhost:8000/api/rules/retail_fomo/toggle \
   -H "Content-Type: application/json" \
   -d '{"is_active": false}'
 ```
@@ -497,7 +497,7 @@ docker-compose up -d
 ```
 
 **Ports:**
-- **5000** - Web dashboard + API
+- **8000** - Web dashboard + API
 - **5432** - PostgreSQL (internal)
 
 **Volumes:**
