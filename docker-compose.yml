@@ -56,7 +56,13 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./config.yaml:/app/config.yaml:ro
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./api_server.py:/app/api_server.py
+      - ./whale_scanner.py:/app/whale_scanner.py
+      - ./tradier_client.py:/app/tradier_client.py
+      - ./database_storage.py:/app/database_storage.py
+      - ./rule_engine.py:/app/rule_engine.py
     depends_on:
       postgres:
         condition: service_healthy
