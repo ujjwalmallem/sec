@@ -46,9 +46,6 @@ criteria:
     - "10+ years"
     - "C++ required"
 
-scoring:
-  auto_apply_threshold: 70    # 0–100; only auto-apply if score >= this
-
 scrapers:
   linkedin:
     enabled: true

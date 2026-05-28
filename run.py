@@ -4,9 +4,8 @@ Job Search CLI
 
 Commands:
   scrape    — scrape all enabled job boards
-  score     — score unscored jobs using Claude API
-  apply     — auto-apply to qualifying jobs
-  pipeline  — scrape + score + apply in sequence
+  score     — score and rank unscored jobs using Claude API
+  pipeline  — scrape + score in sequence
   serve     — start the web dashboard (default: localhost:5000)
   stats     — print quick stats from the database
 """
@@ -62,16 +61,9 @@ def cmd_score() -> None:
     print(f"\nScoring complete. {n} jobs scored.")
 
 
-def cmd_apply() -> None:
-    from job_search import applicator
-    n = applicator.apply_all()
-    print(f"\nAuto-apply complete. Applied to {n} jobs.")
-
-
 def cmd_pipeline(cfg: dict) -> None:
     cmd_scrape(cfg)
     cmd_score()
-    cmd_apply()
 
 
 def cmd_serve(cfg: dict) -> None:
@@ -109,9 +101,6 @@ def main():
     elif command == "score":
         config.load()
         cmd_score()
-    elif command == "apply":
-        cfg = config.load()
-        cmd_apply()
     elif command == "pipeline":
         cfg = config.load()
         cmd_pipeline(cfg)
