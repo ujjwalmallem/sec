@@ -1,0 +1,89 @@
+# Job Search Configuration — copy to config.yaml and fill in your details
+
+resume: |
+  Jane Doe
+  jane@example.com | github.com/janedoe | linkedin.com/in/janedoe
+
+  EXPERIENCE
+  Senior Software Engineer — Acme Corp (2021–present)
+  - Led backend services team building high-throughput data pipelines in Python/Go
+  - Reduced p99 latency by 40% via query optimization and caching layers
+  - Mentored 3 junior engineers
+
+  Software Engineer — Startup Inc (2019–2021)
+  - Built REST APIs with FastAPI and PostgreSQL serving 500k daily active users
+  - Owned CI/CD pipeline (GitHub Actions, Docker, Kubernetes)
+
+  SKILLS
+  Python, Go, TypeScript, PostgreSQL, Redis, Kubernetes, AWS, Terraform, FastAPI, Django
+
+  EDUCATION
+  B.S. Computer Science — State University, 2019
+
+criteria:
+  titles:
+    - Senior Software Engineer
+    - Staff Software Engineer
+    - Backend Engineer
+    - Platform Engineer
+  locations:
+    - Remote
+    - San Francisco, CA
+    - New York, NY
+  remote_ok: true
+  salary_min: 150000          # USD annual; used in score reasoning
+  skills_required:
+    - Python
+    - PostgreSQL
+  skills_nice_to_have:
+    - Kubernetes
+    - Go
+    - TypeScript
+  avoid_companies:
+    - BadCorp
+    - OldEmployer Inc
+  avoid_keywords:
+    - "10+ years"
+    - "C++ required"
+
+scoring:
+  auto_apply_threshold: 70    # 0–100; only auto-apply if score >= this
+
+scrapers:
+  linkedin:
+    enabled: true
+    keywords: "Senior Software Engineer"
+    location: "Remote"
+    max_pages: 3
+
+  indeed:
+    enabled: true
+    query: "senior software engineer"
+    location: "remote"
+    max_pages: 3
+
+  hn_hiring:
+    enabled: true              # Searches latest "Ask HN: Who is Hiring?" thread
+
+  ats:
+    enabled: true
+    greenhouse:
+      - stripe
+      - airbnb
+      - figma
+      - notion
+      - linear
+    lever:
+      - netflix
+      - reddit
+      - plaid
+    ashby:
+      - ramp
+      - retool
+
+anthropic:
+  api_key_env: ANTHROPIC_API_KEY   # name of env var holding your key
+
+web:
+  port: 5000
+  debug: false
